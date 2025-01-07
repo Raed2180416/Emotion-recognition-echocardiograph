@@ -39,8 +39,8 @@ def assign_labels(df):
     df["emotion"] = np.select(conditions, labels, default="Unknown")
     return df
 
-# Train Random Forest and display feature importance
-def train_random_forest_with_feature_importance(df):
+# Train Random Forest and display feature importance and decision boundary
+def train_random_forest_with_visualizations(df):
     # Filter data with valid labels
     df = df[df["emotion"] != "Unknown"].copy()
     df["emotion"] = df["emotion"].astype("category").cat.codes
@@ -91,10 +91,30 @@ def train_random_forest_with_feature_importance(df):
     plt.ylabel("Importance")
     plt.show()
 
+    # Visualize Decision Boundary
+    x_min, x_max = X_resampled.iloc[:, 0].min() - 0.1, X_resampled.iloc[:, 0].max() + 0.1
+    y_min, y_max = X_resampled.iloc[:, 1].min() - 0.1, X_resampled.iloc[:, 1].max() + 0.1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01), np.arange(y_min, y_max, 0.01))
+
+    # Wrap grid points into a DataFrame with correct feature names
+    grid_points = pd.DataFrame(np.c_[xx.ravel(), yy.ravel()], columns=["fractional_shortening", "wall_motion_score"])
+    Z = model.predict(grid_points).reshape(xx.shape)
+
+    plt.contourf(xx, yy, Z, alpha=0.8, cmap=plt.cm.coolwarm)
+    scatter = plt.scatter(X_resampled.iloc[:, 0], X_resampled.iloc[:, 1], c=y_resampled, edgecolor='k', cmap=plt.cm.coolwarm)
+    plt.title("Decision Boundary")
+    plt.xlabel("fractional_shortening")
+    plt.ylabel("wall_motion_score")
+    plt.colorbar(scatter)
+    plt.show()
+
     return model
 
 # Main Execution
 cleaned_file = "echocardiogram_cleaned.data"
 df = load_and_preprocess_data(cleaned_file)
 df = assign_labels(df)
-rf_model = train_random_forest_with_feature_importance(df)
+rf_model = train_random_forest_with_visualizations(df)
+
+
+
